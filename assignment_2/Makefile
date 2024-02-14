@@ -5,13 +5,13 @@ CXX := g++
 # Comment out using "#" at the begining of the line or rearrange according to your needs.
 #
 # Fastest executable (-ffast-math removes checking for NaNs and other things)
-OPT=-O3 -ffast-math
+# OPT=-O3 -ffast-math
 
 # Add profiling to code
 OPT=-O1 -pg
 
 # Faster compilation time
-OPT=-O1
+# OPT=-O1
 
 CXXFLAGS := $(OPT) -Wall -march=znver1 -g -std=c++14
 

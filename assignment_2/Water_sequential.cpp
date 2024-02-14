@@ -115,7 +115,7 @@ public:
     int no_mol = 4;        // number of molecules
     double dt = 0.0005;    // integrator time step
     int data_period = 100; // how often to save coordinate to trajectory
-    std::string filename = "trajectory.txt";   // name of the output file with trajectory
+    std::string filename = "trajectory_seq.txt";   // name of the output file with trajectory
     // system box size. for this code these values are only used for vmd, but in general md codes, period boundary conditions exist
 
     // simulation configurations: number of step, number of the molecules in the system, 
