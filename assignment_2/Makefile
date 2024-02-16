@@ -5,10 +5,10 @@ CXX := g++
 # Comment out using "#" at the begining of the line or rearrange according to your needs.
 #
 # Fastest executable (-ffast-math removes checking for NaNs and other things)
-# OPT=-O3 -ffast-math
+OPT=-O3 -ffast-math
 
 # Add profiling to code
-OPT=-O1 -pg
+# OPT=-O1 -pg
 
 # Faster compilation time
 # OPT=-O1
@@ -21,7 +21,7 @@ seq: Water_sequential.cpp
 	$(CXX) Water_sequential.cpp $(CXXFLAGS) -o seq
 
 vec: Water_vectorised.cpp
-	$(CXX) Water_vectorised.cpp $(CXXFLAGS) -fopenmp-simd -o vec
+	$(CXX) Water_vectorised.cpp $(CXXFLAGS) -fopenmp-simd -fopt-info-vec-optimized  -o vec
 
 clean:
 	rm -fr seq vec

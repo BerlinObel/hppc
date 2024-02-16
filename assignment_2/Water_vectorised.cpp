@@ -161,11 +161,10 @@ void UpdateBondForces(System& sys){
     Molecules& molecule = sys.molecules;
     // Loops over the (2 for water) bond constraints
     for (Bond& bond : molecule.bonds){
+        auto& atom1=molecule.atoms[bond.a1];
+        auto& atom2=molecule.atoms[bond.a2];
         #pragma omp simd
-        for (int i = 0; i < sys.molecules.no_mol; i++){
-            auto& atom1=molecule.atoms[bond.a1];
-            auto& atom2=molecule.atoms[bond.a2];
-            
+        for (int i = 0; i < molecule.no_mol; i++){
             Vec3 dp  = atom1.p[i]-atom2.p[i];
             Vec3 f   = -bond.K*(1-bond.L0/dp.mag())*dp;
             atom1.f[i] += f;
@@ -181,6 +180,9 @@ void UpdateBondForces(System& sys){
 void UpdateAngleForces(System& sys){
     Molecules& molecule = sys.molecules;
     for (Angle& angle : molecule.angles){
+        auto& atom1=molecule.atoms[angle.a1];
+        auto& atom2=molecule.atoms[angle.a2];
+        auto& atom3=molecule.atoms[angle.a3];
     #pragma omp simd
     for (int i = 0; i < molecule.no_mol; i++){
         //====  angle forces  (H--O---H bonds) U_angle = 0.5*k_a(phi-phi_0)^2
@@ -190,9 +192,7 @@ void UpdateAngleForces(System& sys){
         // Ta = norm(H1O x (H1O x H2O))
         // Tc = norm(H2O x (H2O x H1O))
         //=============================================================
-        auto& atom1=molecule.atoms[angle.a1];
-        auto& atom2=molecule.atoms[angle.a2];
-        auto& atom3=molecule.atoms[angle.a3];
+
 
         Vec3 d21 = atom2.p[i]-atom1.p[i];     
         Vec3 d23 = atom2.p[i]-atom3.p[i];    
@@ -262,7 +262,8 @@ void Evolve(System &sys, Sim_Configuration &sc){
     // Drift positions: Loop over molecules and atoms inside the molecules
     Molecules& molecule = sys.molecules;
     for (auto& atom : molecule.atoms){
-        for (int i = 0; i < sys.molecules.no_mol; i++){
+        #pragma omp simd
+        for (int i = 0; i < molecule.no_mol; i++){
 
             atom.v[i] += sc.dt/atom.mass*atom.f[i];    // Update the velocities
             atom.f[i]  = {0,0,0};                   // set the forces zero to prepare for next potential calculation
