@@ -1,0 +1,16 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  us/call  us/call  name    
+ 92.91      9.57     9.57   500000    19.14    19.14  UpdateNonBondedForces(System&)
+  3.69      9.95     0.38   500000     0.76     0.76  UpdateAngleForces(System&)
+  2.04     10.16     0.21   500000     0.42     0.42  UpdateBondForces(System&)
+  1.36     10.30     0.14   500000     0.28    20.60  Evolve(System&, Sim_Configuration&)
+  0.00     10.30     0.00     5001     0.00     0.00  WriteOutput(System&, std::basic_ofstream<char, std::char_traits<char> >&)
+  0.00     10.30     0.00        3     0.00     0.00  void std::vector<Atoms, std::allocator<Atoms> >::_M_realloc_insert<Atoms const&>(__gnu_cxx::__normal_iterator<Atoms*, std::vector<Atoms, std::allocator<Atoms> > >, Atoms const&)
+  0.00     10.30     0.00        1     0.00     0.00  MakeWater(int)
+  0.00     10.30     0.00        1     0.00     0.00  Sim_Configuration::Sim_Configuration(std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >)
+  0.00     10.30     0.00        1     0.00     0.00  Molecules::~Molecules()
+  0.00     10.30     0.00        1     0.00     0.00  std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::vector<char**, void>(char**, char**, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > const&)
+  0.00     10.30     0.00        1     0.00     0.00  std::vector<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> >, std::allocator<std::__cxx11::basic_string<char, std::char_traits<char>, std::allocator<char> > > >::~vector()
