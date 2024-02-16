@@ -5,7 +5,7 @@ CXX := g++
 # Comment out using "#" at the begining of the line or rearrange according to your needs.
 #
 # Fastest executable (-ffast-math removes checking for NaNs and other things)
-OPT=-O3 -ffast-math
+OPT=-O3 -ffast-math -pg
 
 # Add profiling to code
 # OPT=-O1 -pg
