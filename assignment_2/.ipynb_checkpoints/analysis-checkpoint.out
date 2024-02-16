@@ -1,0 +1,14 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  us/call  us/call  name    
+ 75.00      0.57     0.57   505002     1.13     1.33  UpdateAngleForces(System&)
+ 13.16      0.67     0.10   500000     0.20     0.20  UpdateBondForces(System&)
+  5.26      0.71     0.04                             operator*(double, Vec3 const&)
+  2.63      0.73     0.02                             __do_global_dtors_aux
+  2.63      0.75     0.02                             frame_dummy
+  1.32      0.76     0.01                             cross(Vec3 const&, Vec3 const&)
+  0.00      0.76     0.00   500000     0.00     0.00  dot(Vec3 const&, Vec3 const&)
+  0.00      0.76     0.00   500000     0.00     0.00  _dl_relocate_static_pie
+  0.00      0.76     0.00        4     0.00     0.00  MakeWater(int)

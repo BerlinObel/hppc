@@ -15,7 +15,7 @@ OPT=-O3 -ffast-math -pg
 
 CXXFLAGS := $(OPT) -Wall -march=znver1 -g -std=c++14
 
-default: seq vec
+default: seq vec vec_pragma
 
 seq: Water_sequential.cpp
 	$(CXX) Water_sequential.cpp $(CXXFLAGS) -o seq
@@ -23,5 +23,9 @@ seq: Water_sequential.cpp
 vec: Water_vectorised.cpp
 	$(CXX) Water_vectorised.cpp $(CXXFLAGS) -fopenmp-simd -fopt-info-vec-optimized  -o vec
 
+vec_pragma: Water_vectorised_pragma.cpp
+	$(CXX) Water_vectorised_pragma.cpp $(CXXFLAGS) -fopenmp-simd -fopt-info-vec-optimized  -o vec_pragma
+
+
 clean:
-	rm -fr seq vec
+	rm -fr seq vec vec_pragma

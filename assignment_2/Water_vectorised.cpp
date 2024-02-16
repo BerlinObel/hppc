@@ -161,8 +161,8 @@ void UpdateBondForces(System& sys){
     Molecules& molecule = sys.molecules;
     // Loops over the (2 for water) bond constraints
     for (Bond& bond : molecule.bonds){
-        // #pragma omp simd
-        for (int i = 0; i < sys.molecules.no_mol; i++){
+
+        for (int i = 0; i < molecule.no_mol; i++){
             auto& atom1=molecule.atoms[bond.a1];
             auto& atom2=molecule.atoms[bond.a2];
             
@@ -181,7 +181,7 @@ void UpdateBondForces(System& sys){
 void UpdateAngleForces(System& sys){
     Molecules& molecule = sys.molecules;
     for (Angle& angle : molecule.angles){
-    // #pragma omp simd
+
     for (int i = 0; i < molecule.no_mol; i++){
         //====  angle forces  (H--O---H bonds) U_angle = 0.5*k_a(phi-phi_0)^2
         //f_H1 =  K(phi-ph0)/|H1O|*Ta
@@ -234,7 +234,7 @@ void UpdateNonBondedForces(System& sys){
     for (auto& atom1 : molecule.atoms)
     for (auto& atom2 : molecule.atoms) // iterate over all pairs of atoms, similar as well as dissimilar
     for (int i = 0;   i < molecule.no_mol; i++)
-    // #pragma omp simd
+
     for (int j = i+1; j < molecule.no_mol; j++){
             Vec3 dp = atom1.p[i]-atom2.p[j];
 
@@ -262,8 +262,8 @@ void Evolve(System &sys, Sim_Configuration &sc){
     // Drift positions: Loop over molecules and atoms inside the molecules
     Molecules& molecule = sys.molecules;
     for (auto& atom : molecule.atoms){
-        // #pragma omp simd
-        for (int i = 0; i < sys.molecules.no_mol; i++){
+
+        for (int i = 0; i < molecule.no_mol; i++){
 
             atom.v[i] += sc.dt/atom.mass*atom.f[i];    // Update the velocities
             atom.f[i]  = {0,0,0};                   // set the forces zero to prepare for next potential calculation

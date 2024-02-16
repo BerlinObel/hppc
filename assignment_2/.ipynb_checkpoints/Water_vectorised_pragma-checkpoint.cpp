@@ -180,9 +180,9 @@ void UpdateBondForces(System& sys){
 void UpdateAngleForces(System& sys){
     Molecules& molecule = sys.molecules;
     for (Angle& angle : molecule.angles){
-        auto& atom1=molecule.atoms[angle.a1];
-        auto& atom2=molecule.atoms[angle.a2];
-        auto& atom3=molecule.atoms[angle.a3];
+    auto& atom1=molecule.atoms[angle.a1];
+    auto& atom2=molecule.atoms[angle.a2];
+    auto& atom3=molecule.atoms[angle.a3];
     #pragma omp simd
     for (int i = 0; i < molecule.no_mol; i++){
         //====  angle forces  (H--O---H bonds) U_angle = 0.5*k_a(phi-phi_0)^2
@@ -233,7 +233,7 @@ void UpdateNonBondedForces(System& sys){
     
     for (auto& atom1 : molecule.atoms)
     for (auto& atom2 : molecule.atoms) // iterate over all pairs of atoms, similar as well as dissimilar
-    for (int i = 0;   i < molecule.no_mol; i++)
+    for (int i = 0;   i < molecule.no_mol; i++){
     #pragma omp simd
     for (int j = i+1; j < molecule.no_mol; j++){
             Vec3 dp = atom1.p[i]-atom2.p[j];
@@ -253,6 +253,7 @@ void UpdateNonBondedForces(System& sys){
 
             accumulated_forces_non_bond += f.mag();
         }
+    }
 }
 
 // integrating the system for one time step using Leapfrog symplectic integration
@@ -262,7 +263,7 @@ void Evolve(System &sys, Sim_Configuration &sc){
     // Drift positions: Loop over molecules and atoms inside the molecules
     Molecules& molecule = sys.molecules;
     for (auto& atom : molecule.atoms){
-        #pragma omp simd
+        //#pragma omp simd 
         for (int i = 0; i < molecule.no_mol; i++){
 
             atom.v[i] += sc.dt/atom.mass*atom.f[i];    // Update the velocities
