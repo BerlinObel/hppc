@@ -32,14 +32,6 @@ void master (int nworker) {
         t = distribution(engine);   // set up some "tasks"
     }
 
-    
-    
-    /*
-    IMPLEMENT HERE THE CODE FOR THE MASTER
-    ARRAY task contains tasks to be done. Send one element at a time to workers
-    ARRAY result should at completion contain the ranks of the workers that did
-    the corresponding tasks
-    */
     int task_id = 0;
     MPI_Request send_req[NTASKS];
     for (int worker=1; worker<=nworker; worker++) {
@@ -64,12 +56,6 @@ void master (int nworker) {
     
         completed_tasks++;
     }
-
-    
-    
-    
-    //MPI_Waitall(NTASKS,recv_req,MPI_STATUSES_IGNORE);
-    //MPI_Waitall(NTASKS,send_req,MPI_STATUSES_IGNORE);
     
     // Print out a status on how many tasks were completed by each worker
     for (int worker=1; worker<=nworker; worker++) {
