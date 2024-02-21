@@ -14,8 +14,9 @@
 // To run an MPI program we always need to include the MPI headers
 #include <mpi.h>
 
-const int NTASKS=5000;  // number of tasks
+const int NTASKS=50;  // number of tasks
 const int RANDOM_SEED=1234;
+const int DONE=-1;
 
 void master (int nworker) {
     std::array<int, NTASKS> task, result;
@@ -32,6 +33,8 @@ void master (int nworker) {
         t = distribution(engine);   // set up some "tasks"
     }
 
+    
+    
     /*
     IMPLEMENT HERE THE CODE FOR THE MASTER
     ARRAY task contains tasks to be done. Send one element at a time to workers
@@ -39,6 +42,22 @@ void master (int nworker) {
     the corresponding tasks
     */
 
+    MPI_Request send_req[NTASKS], recv_req[NTASKS];
+    for (int i = 0; i < NTASKS; ++i) {
+        
+        int worker = i %  nworker + 1;
+        MPI_Isend(&task[i], 1, MPI_INT, worker, 0, MPI_COMM_WORLD, &send_req[i]); // Non-blocking send
+        std::cout << "sent " << task[i] << " to worker " << worker << "\n";
+
+        MPI_Irecv(&result[i], 1, MPI_INT, worker, 0, MPI_COMM_WORLD, &recv_req[i]); // Non-blocking receive
+
+
+        
+    }
+
+    MPI_Waitall(NTASKS,recv_req,MPI_STATUSES_IGNORE);
+    MPI_Waitall(NTASKS,send_req,MPI_STATUSES_IGNORE);
+    
     // Print out a status on how many tasks were completed by each worker
     for (int worker=1; worker<=nworker; worker++) {
         int tasksdone = 0; int workdone = 0;
@@ -48,8 +67,15 @@ void master (int nworker) {
             workdone += task[itask];
         }
         std::cout << "Master: Worker " << worker << " solved " << tasksdone << 
-                    " tasks\n";    
+                    " tasks\n";   
     }
+
+    for (int worker=1; worker<=nworker; worker++) {
+        MPI_Request send_req;
+        MPI_Isend(&DONE, 1, MPI_INT, worker, 0, MPI_COMM_WORLD, &send_req);
+    }
+    
+    
 }
 
 // call this function to complete the task. It sleeps for task milliseconds
@@ -58,10 +84,27 @@ void task_function(int task) {
 }
 
 void worker (int rank) {
-    /*
-    IMPLEMENT HERE THE CODE FOR THE WORKER
-    Use a call to "task_function" to complete a task
-    */
+    int task;
+    while (true) {
+        MPI_Request send_req, recv_req;
+        
+        MPI_Irecv(&task, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &recv_req); // Non-blocking receive
+        
+        std::cout << rank << " receieved " << task << " from master \n";
+
+        task_function(task); // Execute the task
+        
+        if (task == -1) break;
+
+        MPI_Isend(&rank, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &send_req); // Non-blocking send
+        
+        
+
+        MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
+        MPI_Wait(&send_req, MPI_STATUS_IGNORE);
+        
+
+    }
 }
 
 int main(int argc, char *argv[]) {
