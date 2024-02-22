@@ -159,7 +159,7 @@ void master (int nworker, Data& ds) {
     int task_id = 0;
     MPI_Request send_req;
     for (int worker=1; worker<=nworker; worker++) {
-        MPI_Isend(&settings[task_id], 8, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &send_req); // Non-blocking send
+        MPI_Isend(&settings[task_id], 8, MPI_DOUBLE, worker, task_id, MPI_COMM_WORLD, &send_req); // Non-blocking send
         task_id++;
     }
     int completed_tasks = 0;
@@ -168,14 +168,14 @@ void master (int nworker, Data& ds) {
     while (completed_tasks < n_settings) {
         double acc;
         MPI_Status st;
-        MPI_Recv(&acc, 1, MPI_DOUBLE, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &st);
-
-        accuracy[completed_tasks] = acc;
+        MPI_Recv(&acc, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &st);
+        int task_index = st.MPI_TAG;
+        accuracy[task_index] = acc;
         completed_tasks++;
 
         int worker = st.MPI_SOURCE;
         if (task_id < n_settings) {
-            MPI_Isend(&settings[task_id], 8, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &send_req);
+            MPI_Isend(&settings[task_id], 8, MPI_DOUBLE, worker, task_id, MPI_COMM_WORLD, &send_req);
             task_id++;
         }
     }
@@ -223,12 +223,13 @@ bool ifTerminationSignal(const std::array<double, 8>& arr) {
 void worker (int rank, Data& ds) {
     std::array<double,8> cuts;
     MPI_Request send_req;
+    MPI_Status st;
     while (true) {
-        MPI_Recv(&cuts, 8, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Non-blocking receive
+        MPI_Recv(&cuts, 8, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &st); // Non-blocking receive
         //std::cout << rank << " receieved " << task << " from master \n";
-
+        int task_index = st.MPI_TAG;
         if (ifTerminationSignal(cuts)) {
-            std::cout << "Terminated: " << rank << "\n";
+            //std::cout << "Terminated: " << rank << "\n";
             break;
         }
 
@@ -236,7 +237,7 @@ void worker (int rank, Data& ds) {
         double accuracy = task_function(cuts, ds); // Execute the task
         
         //std::cout << accuracy;
-        MPI_Isend(&accuracy, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &send_req); // Non-blocking send        
+        MPI_Isend(&accuracy, 1, MPI_DOUBLE, 0, task_index, MPI_COMM_WORLD, &send_req); // Non-blocking send        
 
     }
 }
