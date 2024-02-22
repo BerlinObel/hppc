@@ -35,7 +35,7 @@ void master (int nworker) {
     int task_id = 0;
     MPI_Request send_req[NTASKS];
     for (int worker=1; worker<=nworker; worker++) {
-        MPI_Isend(&task[task_id], 1, MPI_INT, worker, 0, MPI_COMM_WORLD, &send_req[task_id]); // Non-blocking send
+        MPI_Isend(&task[task_id], 1, MPI_INT, worker, task_id, MPI_COMM_WORLD, &send_req[task_id]); // Non-blocking send
         task_id++;
     }
 
@@ -43,12 +43,12 @@ void master (int nworker) {
     while (completed_tasks < NTASKS) {
         int worker;
         MPI_Status st;
-        MPI_Recv(&worker, 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &st);
-        result[completed_tasks] = worker;
+        MPI_Recv(&worker, 1, MPI_INT, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &st);
+        result[st.MPI_TAG] = worker;
             
         if (task_id < NTASKS) {
             // Send the next task
-            MPI_Isend(&task[task_id], 1, MPI_INT, worker, 0, MPI_COMM_WORLD, &send_req[task_id]);
+            MPI_Isend(&task[task_id], 1, MPI_INT, worker, task_id, MPI_COMM_WORLD, &send_req[task_id]);
             task_id++;
         } else {
             MPI_Isend(&DONE, 1, MPI_INT, worker, 0, MPI_COMM_WORLD, &send_req[task_id]);
@@ -84,20 +84,17 @@ void task_function(int task) {
 
 void worker (int rank) {
     int task; 
-    MPI_Request send_req, recv_req;
+    MPI_Request send_req;
+    MPI_Status st;
     while (true) {
-        MPI_Irecv(&task, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &recv_req); // Non-blocking receive
-        MPI_Wait(&recv_req, MPI_STATUS_IGNORE);
+        MPI_Recv(&task, 1, MPI_INT, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &st); // Non-blocking receive
+        
         //std::cout << rank << " receieved " << task << " from master \n";
         
         if (task == -1) break;
-
-        MPI_Isend(&rank, 1, MPI_INT, 0, 0, MPI_COMM_WORLD, &send_req); // Non-blocking send
-        
         task_function(task); // Execute the task
         
-        
-        MPI_Wait(&send_req, MPI_STATUS_IGNORE);
+        MPI_Isend(&rank, 1, MPI_INT, 0, st.MPI_TAG, MPI_COMM_WORLD, &send_req); // Non-blocking send
     }
 }
 
