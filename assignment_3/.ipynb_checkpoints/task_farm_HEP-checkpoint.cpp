@@ -182,15 +182,6 @@ void master (int nworker, Data& ds) {
     
         completed_tasks++;
     }
-
-
-
-
-    // THIS CODE SHOULD BE REPLACED BY TASK FARM
-    // loop over all possible cuts and evaluate accuracy
-    for (long k=0; k<n_settings; k++)
-        accuracy[k] = task_function(settings[k], ds);
-    // THIS CODE SHOULD BE REPLACED BY TASK FARM
     // ================================================================
 
     auto tend = std::chrono::high_resolution_clock::now(); // end time (nano-seconds)
@@ -217,16 +208,32 @@ void master (int nworker, Data& ds) {
               << (tend - tstart).count()*1e-3 / n_settings << "\n";
 }
 
+bool ifTerminationSignal(const std::array<double, 8>& arr) {
+    for (double elem : arr) {
+        if (elem != -1.0) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
 void worker (int rank, Data& ds) {
     std::array<double,8> cuts;
     MPI_Request send_req;
     while (true) {
         MPI_Recv(&cuts, 8, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, MPI_STATUS_IGNORE); // Non-blocking receive
         //std::cout << rank << " receieved " << task << " from master \n";
-        
+
+        if (ifTerminationSignal(cuts)) {
+            std::cout << "Terminated: " << rank << "\n";
+            break;
+        }
+
+
         double accuracy = task_function(cuts, ds); // Execute the task
         
-        std::cout << accuracy;
+        //std::cout << accuracy;
         MPI_Isend(&accuracy, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD, &send_req); // Non-blocking send        
 
     }
