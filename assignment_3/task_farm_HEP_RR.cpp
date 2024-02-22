@@ -157,28 +157,13 @@ void master (int nworker, Data& ds) {
     */
 
     int task_id = 0;
-    MPI_Request send_req[n_settings], re;
+    MPI_Request send_req[n_settings], recv_req[n_settings];
     for (int i=0; i<n_settings; i++) {
-        MPI_Isend(&settings[i], 8, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &send_req); // Non-blocking send
-        MPI_Irecv(&accuracy[i], 1, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD
+        MPI_Isend(&settings[i], 8, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &send_req[i]); // Non-blocking send
+        MPI_Irecv(&accuracy[i], 1, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &recv_req[i]);
     }
-    int completed_tasks = 0;
-    std::array<double,8> done_signal = {-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0};
 
-    while (completed_tasks < n_settings) {
-        double acc;
-        MPI_Status st;
-        MPI_Recv(&acc, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &st);
-        int task_index = st.MPI_TAG;
-        accuracy[task_index] = acc;
-        completed_tasks++;
-
-        int worker = st.MPI_SOURCE;
-        if (task_id < n_settings) {
-            MPI_Isend(&settings[task_id], 8, MPI_DOUBLE, worker, task_id, MPI_COMM_WORLD, &send_req);
-            task_id++;
-        }
-    }
+    MPI_Waitall(n_settings,recv_req,MPI_STATUSES_IGNORE);
 
     // Send termination signal to all workers after all tasks are done
     for (int worker = 1; worker <= nworker; worker++) {
