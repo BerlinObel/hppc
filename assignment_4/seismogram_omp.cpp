@@ -17,7 +17,7 @@
 // ======================================================
 // The number of frequencies sets the cost of the problem
 const long NTHREADS=1;            // number of threads
-const long NFREQ=64*1024;         // number of frequencies per core
+const long NFREQ=256*1024;         // number of frequencies per core
 const long nfreq=NFREQ*NTHREADS;  // frequencies in spectrum
 
 // ======================================================
@@ -106,23 +106,45 @@ void fft(std::vector<Complex>& x)
 	const long N = x.size();
 	if (N <= 1) return;
 
-	// divide
-	std::vector<Complex> even(N/2), odd(N/2);
-	for (long i=0; i<N/2; i++) {
-	    even[i] = x[2*i];
-	    odd[i]  = x[2*i+1];
-	}
+	// Use a cutoff to decide when to switch to serial execution
+	const long CUTOFF = 64; // Example cutoff value, adjust based on experimentation
 
-	// conquer
-	fft(even);
-	fft(odd);
+	if (N <= CUTOFF) {
+		// Serial version of FFT for small sizes
+		std::vector<Complex> even(N/2), odd(N/2);
+		for (long i=0; i<N/2; i++) {
+			even[i] = x[2*i];
+			odd[i] = x[2*i+1];
+		}
 
-	// combine
-	for (long k = 0; k < N/2; k++)
-	{
-		Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
-		x[k    ] = even[k] + t;
-		x[k+N/2] = even[k] - t;
+		fft(even);
+		fft(odd);
+
+		for (long k = 0; k < N/2; k++) {
+			Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
+			x[k] = even[k] + t;
+			x[k+N/2] = even[k] - t;
+		}
+	} else {
+		// Parallel version of FFT for larger sizes
+		std::vector<Complex> even(N/2), odd(N/2);
+		for (long i=0; i<N/2; i++) {
+			even[i] = x[2*i];
+			odd[i] = x[2*i+1];
+		}
+
+		#pragma omp task shared(even)
+		fft(even);
+		#pragma omp task shared(odd)
+		fft(odd);
+
+		#pragma omp taskwait
+
+		for (long k = 0; k < N/2; k++) {
+			Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
+			x[k] = even[k] + t;
+			x[k+N/2] = even[k] - t;
+		}
 	}
 }
 
@@ -131,6 +153,7 @@ void ifft(std::vector<Complex>& x)
 {
     double inv_size = 1.0 / x.size();
     for (auto& xx: x) xx = std::conj(xx); // conjugate the input
+    #pragma omp single
 	fft(x);  	   // forward fft
     for (auto& xx: x) 
         xx = std::conj(xx)  // conjugate the output
@@ -162,28 +185,35 @@ DoubleVector propagator(std::vector<double> wave,
     
 
         // Compute seismic impedance
+    #pragma omp parallel for
     for (long i=0; i < nlayers; i++)
         imp[i] = density[i] * velocity[i];
     
     // Reflection coefficients at the base of the layers :
+    #pragma omp parallel for
     for (long i=0; i < nlayers-1; i++)
         ref[i] = (imp[i+1] - imp[i])/(imp[i+1] + imp[i]);
 
     // Spectral window (both low- and high cut)
+    #pragma omp parallel for
     for (long i=0; i < lc+1; i++)
         half_filter[i]= (sin(M_PI*(2*i-lc)/(2*lc)))/2+0.5;
 
+    #pragma omp parallel for
     for (long i=0; i < nfreq/2+1; i++)
         filter[i] = half_filter[i];
 
     filter[nfreq/2+1] = 1;
 
+    #pragma omp parallel for
     for (long i=nfreq/2+2; i < nfreq+1; i++)
         filter[i] = half_filter[nfreq+1-i];
 
+    #pragma omp parallel for
     for (long i=0; i < n_wave/2; i++)
         half_wave[i] = wave[n_wave/2-1+i];
 
+    #pragma omp parallel for reduction(+:mean_wave)
     for (long i=0; i < 2*nfreq; i++) {
         if (i < nfreq) {
             wave_spectral[i] = half_wave[i];
@@ -194,18 +224,21 @@ DoubleVector propagator(std::vector<double> wave,
     }
 
     mean_wave = mean_wave / nsamp;
-
+    
+    #pragma omp parallel for 
     for (long i=0.; i < 2*nfreq; i++)
         wave_spectral[i] -= mean_wave;
 
     // Fourier transform waveform to frequency domain
     tstart1 = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
+    #pragma omp single
     fft(wave_spectral);
     tend1 = std::chrono::high_resolution_clock::now(); // end time (nano-seconds)
 
     // spectrum U of upgoing waves just below the surface.
     // See eq. (43) and (44) in Ganley (1981).
-
+    
+    #pragma omp parallel for
     for (long i=0; i < nfreq+1; i++) {
         Complex omega{0, 2*M_PI*i*dF};
         Complex exp_omega = exp( - dT * omega);
@@ -216,14 +249,16 @@ DoubleVector propagator(std::vector<double> wave,
     }
 
     // Compute seismogram
+
+    #pragma omp parallel for
     for (long i=0; i < nfreq+1; i++) {
         U[i] *= filter[i];
         Upad[i] = U[i];
     }
-
+    #pragma omp parallel for
     for (long i=nfreq+1; i < nsamp; i++)
         Upad[i] = std::conj(Upad[nsamp - i]);
-
+    #pragma omp parallel for
     for (long i=0; i < nsamp; i++)
         Upad[i] *= wave_spectral[i];
     
@@ -231,7 +266,7 @@ DoubleVector propagator(std::vector<double> wave,
     tstart2 = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
     ifft(Upad);
     tend2 = std::chrono::high_resolution_clock::now(); // end time (nano-seconds)
-
+    #pragma omp parallel for
     for (long i=0; i < nsamp; i++)
         seismogram[i] = std::real(Upad[i]);
 
@@ -260,8 +295,11 @@ int main(int argc, char* argv[]){
     std::vector<double> density = read_txt_file("density_data.txt");   // density as a function of depth
     std::vector<double> velocity = read_txt_file("velocity_data.txt"); // seismic wave velocity as a function of depth
 
+
+    DoubleVector seismogram;
     // Propagate wave
-    auto seismogram = propagator(wave,density,velocity);
+    //#pragma omp parallel 
+    seismogram = propagator(wave,density,velocity);
     
     // write output and make checksum
     double checksum=0;
@@ -270,6 +308,7 @@ int main(int argc, char* argv[]){
         file << seismogram[i] << '\n';
         checksum += abs(seismogram[i]);
     }
+    
     std::cout <<  "Checksum    :" << std::setw(20) << std::setprecision(15)
               << checksum << "\n";
 }

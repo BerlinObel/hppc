@@ -8,6 +8,10 @@ CXX := g++
 # Fastest executable (-ffast-math removes checking for NaNs and other things)
 OPT=-O3 -ffast-math
 
+
+# Profiling
+# OPT=-O3 -ffast-math -pg -Og
+
 # Add thread checking to code
 #OPT=-O1 -fsanitize=thread -fPIE -pie
 
