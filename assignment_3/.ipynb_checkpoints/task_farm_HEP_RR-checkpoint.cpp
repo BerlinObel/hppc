@@ -156,17 +156,19 @@ void master (int nworker, Data& ds) {
     The master should pass a set of settings to a worker, and the worker should return the accuracy
     */
 
-    int task_id = 0;
     MPI_Request send_req[n_settings], recv_req[n_settings];
     for (int i=0; i<n_settings; i++) {
+        int worker = i %  nworker + 1;
         MPI_Isend(&settings[i], 8, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &send_req[i]); // Non-blocking send
         MPI_Irecv(&accuracy[i], 1, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &recv_req[i]);
     }
 
     MPI_Waitall(n_settings,recv_req,MPI_STATUSES_IGNORE);
-
+    
+    std::array<double,8> done_signal = {-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0,-1.0};
     // Send termination signal to all workers after all tasks are done
     for (int worker = 1; worker <= nworker; worker++) {
+        MPI_Request send_req;
         MPI_Isend(&done_signal, 8, MPI_DOUBLE, worker, 0, MPI_COMM_WORLD, &send_req);
     }
     // ================================================================

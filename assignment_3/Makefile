@@ -9,7 +9,7 @@ OPT=-O3
 
 CXXFLAGS := $(OPT) -Wall -Wno-unused-const-variable -std=c++14 -march=native
 
-default: task_farm task_farm_HEP task_farm_HEP_seq
+default: task_farm task_farm_HEP task_farm_HEP_seq task_farm_HEP_RR
 
 task_farm: task_farm.cpp
 	$(CXX) task_farm.cpp $(CXXFLAGS) -o task_farm
@@ -20,5 +20,8 @@ task_farm_HEP: task_farm_HEP.cpp
 task_farm_HEP_seq: task_farm_HEP_seq.cpp
 	$(CXX) task_farm_HEP_seq.cpp $(CXXFLAGS) -o task_farm_HEP_seq
 
+task_farm_HEP_RR: task_farm_HEP_RR.cpp
+	$(CXX) task_farm_HEP_RR.cpp $(CXXFLAGS) -o task_farm_HEP_RR
+
 clean:
-	rm -f task_farm task_farm_HEP task_farm_HEP_seq
+	rm -f task_farm task_farm_HEP task_farm_HEP_seq task_farm_HEP_RR
