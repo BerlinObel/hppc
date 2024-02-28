@@ -106,45 +106,23 @@ void fft(std::vector<Complex>& x)
 	const long N = x.size();
 	if (N <= 1) return;
 
-	// Use a cutoff to decide when to switch to serial execution
-	const long CUTOFF = 64; // Example cutoff value, adjust based on experimentation
+	// divide
+	std::vector<Complex> even(N/2), odd(N/2);
+	for (long i=0; i<N/2; i++) {
+	    even[i] = x[2*i];
+	    odd[i]  = x[2*i+1];
+	}
 
-	if (N <= CUTOFF) {
-		// Serial version of FFT for small sizes
-		std::vector<Complex> even(N/2), odd(N/2);
-		for (long i=0; i<N/2; i++) {
-			even[i] = x[2*i];
-			odd[i] = x[2*i+1];
-		}
+	// conquer
+	fft(even);
+	fft(odd);
 
-		fft(even);
-		fft(odd);
-
-		for (long k = 0; k < N/2; k++) {
-			Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
-			x[k] = even[k] + t;
-			x[k+N/2] = even[k] - t;
-		}
-	} else {
-		// Parallel version of FFT for larger sizes
-		std::vector<Complex> even(N/2), odd(N/2);
-		for (long i=0; i<N/2; i++) {
-			even[i] = x[2*i];
-			odd[i] = x[2*i+1];
-		}
-
-		#pragma omp task shared(even)
-		fft(even);
-		#pragma omp task shared(odd)
-		fft(odd);
-
-		#pragma omp taskwait
-
-		for (long k = 0; k < N/2; k++) {
-			Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
-			x[k] = even[k] + t;
-			x[k+N/2] = even[k] - t;
-		}
+	// combine
+	for (long k = 0; k < N/2; k++)
+	{
+		Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
+		x[k    ] = even[k] + t;
+		x[k+N/2] = even[k] - t;
 	}
 }
 
@@ -153,7 +131,6 @@ void ifft(std::vector<Complex>& x)
 {
     double inv_size = 1.0 / x.size();
     for (auto& xx: x) xx = std::conj(xx); // conjugate the input
-    #pragma omp single
 	fft(x);  	   // forward fft
     for (auto& xx: x) 
         xx = std::conj(xx)  // conjugate the output
@@ -231,7 +208,6 @@ DoubleVector propagator(std::vector<double> wave,
 
     // Fourier transform waveform to frequency domain
     tstart1 = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
-    #pragma omp single
     fft(wave_spectral);
     tend1 = std::chrono::high_resolution_clock::now(); // end time (nano-seconds)
 
