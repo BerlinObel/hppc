@@ -16,8 +16,8 @@
 
 // ======================================================
 // The number of frequencies sets the cost of the problem
-const long NTHREADS=4;            // number of threads
-const long NFREQ=64*1024;         // number of frequencies per core
+const long NTHREADS=1;            // number of threads
+const long NFREQ=256*1024;         // number of frequencies per core
 const long nfreq=NFREQ*NTHREADS;  // frequencies in spectrum
 
 // ======================================================
@@ -202,16 +202,16 @@ DoubleVector propagator(std::vector<double> wave,
     for (long i=0; i < lc+1; i++)
         half_filter[i]= (sin(M_PI*(2*i-lc)/(2*lc)))/2+0.5;
 
-    #pragma omp for nowait
+    #pragma omp for
     for (long i=0; i < nfreq/2+1; i++)
         filter[i] = half_filter[i];
     
-    #pragma omp single nowait
+    #pragma omp single
     {
     filter[nfreq/2+1] = 1;
     }
     
-    #pragma omp for nowait
+    #pragma omp for
     for (long i=nfreq/2+2; i < nfreq+1; i++)
         filter[i] = half_filter[nfreq+1-i];
 
@@ -239,7 +239,7 @@ DoubleVector propagator(std::vector<double> wave,
         wave_spectral[i] -= mean_wave;
 
     // Fourier transform waveform to frequency domain
-    #pragma omp single nowait
+    #pragma omp single
     {
     tstart1 = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
     fft(wave_spectral);
@@ -248,7 +248,7 @@ DoubleVector propagator(std::vector<double> wave,
     // spectrum U of upgoing waves just below the surface.
     // See eq. (43) and (44) in Ganley (1981).
     
-    #pragma omp for 
+    #pragma omp for
     for (long i=0; i < nfreq+1; i++) {
         Complex omega{0, 2*M_PI*i*dF};
         Complex exp_omega = exp( - dT * omega);
