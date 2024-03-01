@@ -16,7 +16,7 @@
 
 // ======================================================
 // The number of frequencies sets the cost of the problem
-const long NTHREADS= 1;  // number of threads
+const long NTHREADS= omp_get_max_threads();  // number of threads
 const long NFREQ=256*1024*16;         // number of frequencies per core
 const long nfreq=NFREQ*NTHREADS;  // frequencies in spectrum
 
@@ -130,6 +130,7 @@ void fft(std::vector<Complex>& x)
 		// Parallel version of FFT for larger sizes
 		std::vector<Complex> even(N/2), odd(N/2);
         
+        #pragma omp taskloop shared(even,odd,x)
 		for (long i=0; i<N/2; i++) {
 			even[i] = x[2*i];
 			odd[i] = x[2*i+1];
@@ -146,6 +147,7 @@ void fft(std::vector<Complex>& x)
             
 		#pragma omp taskwait
 
+        #pragma omp taskloop shared(even,odd,x)
 		for (long k = 0; k < N/2; k++) {
 			Complex t = std::polar(1.0, -2 * M_PI * k / N) * odd[k];
 			x[k] = even[k] + t;

@@ -16,7 +16,7 @@
 
 // ======================================================
 // The number of frequencies sets the cost of the problem
-const long NTHREADS= 1;  // number of threads
+const long NTHREADS=omp_get_max_threads();            // number of threads
 const long NFREQ=256*1024*16;         // number of frequencies per core
 const long nfreq=NFREQ*NTHREADS;  // frequencies in spectrum
 
@@ -107,7 +107,7 @@ void fft(std::vector<Complex>& x)
 	if (N <= 1) return;
 
 	// Use a cutoff to decide when to switch to serial execution
-	const long CUTOFF = 2048; // Example cutoff value, adjust based on experimentation
+	const long CUTOFF = 64; // Example cutoff value, adjust based on experimentation
 
 	if (N <= CUTOFF) {
 		// Serial version of FFT for small sizes
@@ -126,24 +126,20 @@ void fft(std::vector<Complex>& x)
 			x[k+N/2] = even[k] - t;
 		}
 	} else {
-
+        #pragma omp parallel
+        {
 		// Parallel version of FFT for larger sizes
 		std::vector<Complex> even(N/2), odd(N/2);
-        
 		for (long i=0; i<N/2; i++) {
 			even[i] = x[2*i];
 			odd[i] = x[2*i+1];
 		}
 
 		#pragma omp task shared(even)
-        {
 		fft(even);
-        }
-        #pragma omp task shared(odd)
-        {
+		#pragma omp task shared(odd)
 		fft(odd);
-        }
-            
+
 		#pragma omp taskwait
 
 		for (long k = 0; k < N/2; k++) {
@@ -151,6 +147,7 @@ void fft(std::vector<Complex>& x)
 			x[k] = even[k] + t;
 			x[k+N/2] = even[k] - t;
 		}
+        }
 	}
 }
 
@@ -158,13 +155,8 @@ void fft(std::vector<Complex>& x)
 void ifft(std::vector<Complex>& x)
 {
     double inv_size = 1.0 / x.size();
-    #pragma omp for
     for (auto& xx: x) xx = std::conj(xx); // conjugate the input
-    #pragma omp single
-    {
 	fft(x);  	   // forward fft
-    }
-    #pragma omp for
     for (auto& xx: x) 
         xx = std::conj(xx)  // conjugate the output
             * inv_size;     // scale the numbers
@@ -193,19 +185,17 @@ DoubleVector propagator(std::vector<double> wave,
 
     auto tstart = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
     
-    // Compute seismic impedance
-    for (long i=0; i < nlayers; i++)
-        imp[i] = density[i] * velocity[i];
-
-    // Reflection coefficients at the base of the layers :
-    for (long i=0; i < nlayers-1; i++)
-        ref[i] = (imp[i+1] - imp[i])/(imp[i+1] + imp[i]);
-
-    for (long i=0; i < n_wave/2; i++)
-        half_wave[i] = wave[n_wave/2-1+i];
-
     #pragma omp parallel 
     {
+    // Compute seismic impedance
+    #pragma omp for 
+    for (long i=0; i < nlayers; i++)
+        imp[i] = density[i] * velocity[i];
+    
+    // Reflection coefficients at the base of the layers :
+    #pragma omp for nowait
+    for (long i=0; i < nlayers-1; i++)
+        ref[i] = (imp[i+1] - imp[i])/(imp[i+1] + imp[i]);
     
     // Spectral window (both low- and high cut)
     #pragma omp for
@@ -224,6 +214,10 @@ DoubleVector propagator(std::vector<double> wave,
     #pragma omp for nowait
     for (long i=nfreq/2+2; i < nfreq+1; i++)
         filter[i] = half_filter[nfreq+1-i];
+
+    #pragma omp for
+    for (long i=0; i < n_wave/2; i++)
+        half_wave[i] = wave[n_wave/2-1+i];
 
     #pragma omp for reduction(+:mean_wave)
     for (long i=0; i < 2*nfreq; i++) {
@@ -282,9 +276,12 @@ DoubleVector propagator(std::vector<double> wave,
 
     
     // Fourier transform back again
+    #pragma omp single
+    {
     tstart2 = std::chrono::high_resolution_clock::now(); // start time (nano-seconds)
     ifft(Upad);
     tend2 = std::chrono::high_resolution_clock::now(); // end time (nano-seconds)
+    }
         
     
     
