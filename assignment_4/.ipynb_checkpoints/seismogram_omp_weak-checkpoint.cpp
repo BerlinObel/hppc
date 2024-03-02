@@ -321,7 +321,7 @@ int main(int argc, char* argv[]){
     std::vector<double> density = read_txt_file("density_data.txt");   // density as a function of depth
     std::vector<double> velocity = read_txt_file("velocity_data.txt"); // seismic wave velocity as a function of depth
 
-
+    std::cout << "Number of threads/cores: " << NTHREADS << '\n';
     DoubleVector seismogram;
     // Propagate wave
     //#pragma omp parallel 
