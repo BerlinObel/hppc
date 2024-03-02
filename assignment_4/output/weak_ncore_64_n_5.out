@@ -1,0 +1,3 @@
+Number of threads=8
+/var/spool/slurmd/job88213/slurm_script: line 28: 1023285 Killed                  apptainer exec ~/modi_images/ucphhpc/hpc-notebook:latest ./mp_weak
+slurmstepd: error: Detected 1 oom-kill event(s) in StepId=88213.batch. Some of your processes may have been killed by the cgroup out-of-memory handler.

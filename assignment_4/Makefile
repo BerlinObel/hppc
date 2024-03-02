@@ -8,9 +8,8 @@ CXX := g++
 # Fastest executable (-ffast-math removes checking for NaNs and other things)
 OPT=-O3 -ffast-math
 
-
 # Profiling
-# OPT=-O3 -ffast-math -pg -Og
+# OPT=-O3 -ffast-math -pg -g -Og
 
 # Add thread checking to code
 #OPT=-O1 -fsanitize=thread -fPIE -pie
@@ -20,7 +19,7 @@ OPT=-O3 -ffast-math
 
 CXXFLAGS := $(OPT) -Wall -march=native -g -std=c++14
 
-default: seq mp
+default: seq mp mp_weak mp_strong
 
 seq: seismogram_seq.cpp
 	$(CXX) seismogram_seq.cpp $(CXXFLAGS) -o seq
@@ -28,5 +27,11 @@ seq: seismogram_seq.cpp
 mp: seismogram_omp.cpp
 	$(CXX) seismogram_omp.cpp $(CXXFLAGS) -fopenmp -o mp
 
+mp_weak: seismogram_omp_weak.cpp
+	$(CXX) seismogram_omp_weak.cpp $(CXXFLAGS) -fopenmp -o mp_weak
+
+mp_strong: seismogram_omp_strong.cpp
+	$(CXX) seismogram_omp_strong.cpp $(CXXFLAGS) -fopenmp -o mp_strong
+
 clean:
-	rm -fr seq mp
+	rm -fr seq mp mp_weak mp_strong
