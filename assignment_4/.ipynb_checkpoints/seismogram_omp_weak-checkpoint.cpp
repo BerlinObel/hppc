@@ -17,7 +17,7 @@
 // ======================================================
 // The number of frequencies sets the cost of the problem
 const long NTHREADS= omp_get_max_threads();  // number of threads
-const long NFREQ=256*1024*16;         // number of frequencies per core
+const long NFREQ=256*1024;         // number of frequencies per core
 const long nfreq=NFREQ*NTHREADS;  // frequencies in spectrum
 
 // ======================================================
